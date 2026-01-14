@@ -1,0 +1,271 @@
+// Prisma Schema for Location-Based Social Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  displayName     String
+  age             Int       @default(18)
+  bio             String    @default("")
+  tags            String[]  @default([])
+  photoUrl        String    @default("")
+  
+  // Location (lat/lng stored, geo column added via migration)
+  lat             Float?
+  lng             Float?
+  
+  // Payment
+  stripeCustomerId String?  @unique
+  
+  // Auth & Security
+  twoFAEnabled    Boolean   @default(false)
+  totpSecret      String?   // Encrypted TOTP secret
+  
+  // Reputation & Status
+  reputation      Int       @default(0)
+  isVerified      Boolean   @default(false)
+  
+  // Relationships
+  subscription    Subscription?
+  devices         Device[]
+  sessions        Session[]
+  sentMessages    Message[]     @relation("SentMessages")
+  receivedMessages Message[]    @relation("ReceivedMessages")
+  beacons         Beacon[]
+  spots           Spot[]
+  mediaAssets     MediaAsset[]
+  reports         Report[]      @relation("UserReports")
+  purchases       Purchase[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([email])
+  @@index([lat, lng])
+}
+
+model Subscription {
+  id                    String    @id @default(cuid())
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String    @unique
+  
+  stripeSubscriptionId  String    @unique
+  status                String    // active, canceled, past_due, trialing
+  plan                  String    // basic, premium, enterprise
+  
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean   @default(false)
+  canceledAt            DateTime?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([userId])
+}
+
+model Device {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  deviceId    String    // Unique device identifier
+  platform    String    // ios, android, web
+  userAgent   String    @default("")
+  
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  
+  @@unique([userId, deviceId])
+  @@index([userId])
+}
+
+model Session {
+  id            String    @id @default(cuid())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  
+  deviceId      String
+  refreshJti    String    @unique  // JWT ID for refresh token
+  revoked       Boolean   @default(false)
+  replacedBy    String?   // JTI of replacement token (for rotation chain)
+  
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  
+  @@index([refreshJti])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Message {
+  id            String    @id @default(cuid())
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId      String
+  recipient     User      @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId   String
+  
+  content       String
+  encrypted     Boolean   @default(false)
+  
+  // Sensitive content features
+  viewOnce      Boolean   @default(false)
+  expiresAt     DateTime?
+  viewedAt      DateTime?
+  
+  // Media attachment
+  mediaId       String?
+  
+  read          Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  
+  @@index([recipientId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+model Beacon {
+  id            String    @id @default(cuid())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  
+  title         String
+  category      String    // coffee, drinks, food, activity, etc.
+  description   String    @default("")
+  
+  // Location (geo column added via SQL migration with PostGIS)
+  lat           Float
+  lng           Float
+  
+  radiusMeters  Int       @default(500)
+  expiresAt     DateTime
+  
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([active])
+}
+
+model Venue {
+  id          String    @id @default(cuid())
+  name        String
+  kind        String    // bar, club, park, restaurant, cafe, etc.
+  description String    @default("")
+  
+  // Location (geo column added via SQL migration with PostGIS)
+  lat         Float
+  lng         Float
+  
+  // Metadata
+  address     String    @default("")
+  website     String?
+  verified    Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([kind])
+}
+
+model Spot {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  title       String
+  note        String    @default("")
+  
+  // Location (geo column added via SQL migration with PostGIS)
+  lat         Float
+  lng         Float
+  
+  // Moderation
+  approved    Boolean   @default(false)
+  flagged     Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([approved])
+  @@index([userId])
+}
+
+model MediaAsset {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  url         String    // S3 URL
+  kind        String    // photo, video
+  blurHash    String?   // For placeholder loading
+  
+  // Metadata
+  width       Int?
+  height      Int?
+  sizeBytes   Int?
+  
+  // Moderation
+  status      String    @default("pending") // pending, approved, rejected
+  flagged     Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([status])
+}
+
+model Report {
+  id          String    @id @default(cuid())
+  reporter    User      @relation("UserReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId  String
+  
+  type        String    // user, message, photo, beacon, spot
+  targetId    String    // ID of reported item
+  reason      String    // inappropriate, spam, harassment, etc.
+  details     String?   // Additional context
+  
+  // Moderation status
+  status      String    @default("pending") // pending, reviewed, actioned
+  reviewedBy  String?   // Admin user ID
+  reviewedAt  DateTime?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([status])
+  @@index([targetId])
+}
+
+model Purchase {
+  id                    String    @id @default(cuid())
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String
+  
+  stripePaymentIntentId String    @unique
+  amount                Int       // Amount in cents
+  currency              String    @default("usd")
+  productType           String    // boost, premium_feature, etc.
+  
+  status                String    @default("succeeded")
+  createdAt             DateTime  @default(now())
+  
+  @@index([userId])
+}
+
+model FeatureFlag {
+  key         String    @id
+  enabled     Boolean   @default(false)
+  payload     Json?     // Additional config data
+  description String?
+  
+  updatedAt   DateTime  @updatedAt
+}
