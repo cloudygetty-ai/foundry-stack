@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Social Connect",
+    "slug": "social-connect-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.socialconnect",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to show you nearby users and events",
+        "NSLocationAlwaysUsageDescription": "We need your location to show you nearby users and events",
+        "NSCameraUsageDescription": "We need camera access to let you take photos",
+        "NSPhotoLibraryUsageDescription": "We need photo library access to let you upload photos"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366f1"
+      },
+      "package": "com.yourcompany.socialconnect",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Social Connect to use your location to show nearby users and events."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Social Connect to access your camera to take photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Social Connect to access your photos to upload profile pictures."
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:4000/api",
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
+  }
+}
