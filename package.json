@@ -14,11 +14,13 @@
     "db:seed": "node prisma/seed.js"
   },
   "keywords": [
-    "social",
-    "location",
-    "dating",
-    "networking",
-    "geospatial"
+    "saas",
+    "boilerplate",
+    "prisma",
+    "express",
+    "react-native",
+    "stripe",
+    "postgis"
   ],
   "author": "Your Name",
   "license": "MIT",
@@ -42,5 +44,9 @@
   "devDependencies": {
     "nodemon": "^3.0.2",
     "prisma": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloudygetty-ai/foundry-stack.git"
   }
 }
